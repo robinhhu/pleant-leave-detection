@@ -36,6 +36,7 @@
         android:id="@+id/returnButton"
         android:layout_width="129dp"
         android:layout_height="63dp"
+        android:onClick="upload"
         android:layout_marginBottom="156dp"
         android:text="return"
         app:layout_constraintBottom_toBottomOf="parent"
