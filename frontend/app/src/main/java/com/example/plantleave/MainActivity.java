@@ -1,14 +1,11 @@
 package com.example.plantleave;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-
 import android.graphics.BitmapFactory;
 import android.os.StrictMode;
 import android.view.View;
 import android.os.Bundle;
-
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -20,10 +17,6 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
-
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.resource.bitmap.CenterCrop;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -48,83 +41,81 @@ import okhttp3.Response;
 
 
 public class MainActivity extends AppCompatActivity {
-    private static final int REQUEST_CODE_GALLERY = 0x10;
-    public final static int REQUEST_IMAGE_CAPTURE = 1;
-    private static final int STORAGE_PERMISSION = 0x20;
-    private static final int CROP_PHOTO = 2;
+    private static final int REQCODE = 0x10;
+    public final static int REQIMG = 1;
+    private static final int PERSTORE = 0x20;
+    private static final int CANCROP = 2;
 
-    @BindView(R.id.imageView)ImageView imageView;// imageView
+    @BindView(R.id.imageView)ImageView imageView;
 
-    private File imageFile = null;
-    private Uri outputFileUri = null;
+    private File imgFile =null;
+    private Uri fUri = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //takePhotos = (ImageButton) findViewById(R.id.imageButton2);
+
         ButterKnife.bind(this);
 
         requestStoragePermission();
-        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.VmPolicy.Builder builder=new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
     }
 
-    //start
+
     @OnClick(R.id.imageButton2)
     public void takeImage(View view) {
         createImageFile();
-        outputFileUri = Uri.fromFile(imageFile);
-        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
-        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
+        fUri =Uri.fromFile( imgFile);
+        Intent newIntent= new Intent( "android.media.action.IMAGE_CAPTURE" );
+        newIntent.putExtra(MediaStore.EXTRA_OUTPUT, fUri);
+        startActivityForResult( newIntent, REQIMG);
     }
 
     @OnClick(R.id.imageButton)
     public void selectImage(View view) {
-        Intent selectIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(selectIntent, REQUEST_CODE_GALLERY);
+        Intent chooseIntent = new Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(chooseIntent, REQCODE);
     }
 
     @OnClick(R.id.button)
     public void upload(View view) {
-        Intent intent=new Intent(MainActivity.this,ResultActivity.class);
-        startActivity(intent);
-        uploadImage("http://10.0.2.2:8090/file/upload","outputFileUri");
+        uploadImage( "http://10.0.2.2:8090/file/upload","outputFileUri");
+        Intent newIntent=new Intent(MainActivity.this, ResultActivity.class);
+
+        startActivity(newIntent);
     }
 
-    public void uploadImage(String url, String imageUrl)  {
+    public void uploadImage(String url, String imageUrl) {
         OkHttpClient okHttpClient = new OkHttpClient();
-        if(outputFileUri == null) {
+        if(fUri == null) {
             //
         }
         else {
             try {
-                RequestBody image = RequestBody.create(MediaType.parse("image/*"), imageFile);
-                RequestBody requestBody = new MultipartBody.Builder()
-                        .setType(MultipartBody.FORM)
-                        .addFormDataPart("file", imageUrl, image)
-                        .build();
-                Request request = new Request.Builder()
-                        .url(url)
-                        .post(requestBody)
-                        .build();
-                Call call = okHttpClient.newCall(request);
+                MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+                if (imgFile != null){
+                    //Log.d("TAG", String.valueOf(imgFile));
+                    builder.addFormDataPart("file",imgFile.getName(),
+                            RequestBody.create(MediaType.parse
+                            ("image*//*"), imgFile));
+                }
+                MultipartBody reqBody = builder.build();
+                Request newRequest = new Request.Builder().url(url).post(reqBody).build();
+
+                Call call = okHttpClient.newCall(newRequest);
                 call.enqueue(new Callback() {
                     @Override
-                    public void onFailure(Call call, IOException e) {
-                        e.printStackTrace();
-                    }
-
+                    public void onFailure(Call call, IOException ex){ex.printStackTrace();}
                     @Override
-                    public void onResponse(Call call, Response response) throws IOException {
+                    public void onResponse(Call call, Response response) throws IOException{
                         if (response.isSuccessful()) {
                             try {
-                                JSONObject jsonObject = new JSONObject(response.body().string());
+                                JSONObject jsObj = new JSONObject(response.body().string());
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
-                            //处理UI需要切换到UI线程处理
                         }
                     }
                 });
@@ -135,131 +126,94 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != RESULT_OK) {
-            Log.d("TAG","canceled or other exception!");
+    protected void onActivityResult(int reqCode, int resCode, Intent data) {
+        super.onActivityResult(reqCode, resCode, data);
+        if (resCode != RESULT_OK) {
+            //
+            Log.d("TAG","exception");
         }
         else{
-            switch (requestCode) {
-                case REQUEST_IMAGE_CAPTURE:
+            switch (reqCode) {
+                case REQIMG:
                     Intent intent = new Intent("com.android.camera.action.CROP");
-                    intent.setDataAndType(outputFileUri, "image/*");
+                    intent.setDataAndType( fUri,"image/*");
+
                     intent.putExtra("crop", "true");
                     intent.putExtra("scale", true);
+                    intent.putExtra("outputX",500);
+                    intent.putExtra("outputY",500);
+                    intent.putExtra("aspectX",1);
+                    intent.putExtra("aspectY",1);
+                    intent.putExtra("return-data",false);
 
-                    intent.putExtra("aspectX", 1);
-                    intent.putExtra("aspectY", 1);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT,fUri);
+                    Toast.makeText( MainActivity.this,"Crop", Toast.LENGTH_SHORT).show();
 
-                    intent.putExtra("outputX", 400);
-                    intent.putExtra("outputY", 400);
-                    intent.putExtra("return-data", false);
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
-                    Toast.makeText(MainActivity.this, "Crop", Toast.LENGTH_SHORT).show();
-                    //broadcast
-                    Intent intentBc = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                    intentBc.setData(outputFileUri);
-                    //displayImage(outputFileUri);
-                    this.sendBroadcast(intentBc);
-                    startActivityForResult(intent, CROP_PHOTO);
+                    Intent newIntent= new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                    newIntent.setData(fUri);
+
+                    this.sendBroadcast(newIntent);
+                    startActivityForResult(newIntent,CANCROP);
+
                     break;
 
-                case CROP_PHOTO:
+                case CANCROP:
                     try {
-                        Log.v("MainActivity","Log.v输入日志信息");
-                        //displayImage(outputFileUri);
-                        Bitmap bitmap = BitmapFactory.decodeStream(
-                                getContentResolver().openInputStream(outputFileUri));
-                        Toast.makeText(MainActivity.this, outputFileUri.toString(), Toast.LENGTH_SHORT).show();
-                        Log.v("MainActivity",outputFileUri.toString());
-                        imageView.setImageBitmap(bitmap);
-                    } catch(FileNotFoundException e) {
-                        e.printStackTrace();
+                        Bitmap bm = BitmapFactory.decodeStream( getContentResolver().openInputStream(fUri) );
+                        Toast.makeText(MainActivity.this,fUri.toString(),Toast.LENGTH_SHORT).show();
+
+                        imageView.setImageBitmap(bm);
+                    } catch(FileNotFoundException ex) {
+                        ex.printStackTrace();
                     }
                     break;
 
-                case REQUEST_CODE_GALLERY:
-                    outputFileUri = data.getData();
-                    Uri uri = data.getData();// 获取图片的uri
+                case REQCODE:
+                    Uri uri = data.getData();
+                    fUri = data.getData();
 
-                    Intent intentI = new Intent("com.android.camera.action.CROP");
-                    intentI.setDataAndType(uri, "image/*");
-                    intentI.putExtra("crop", "true");
-                    intentI.putExtra("scale", true);
+                    Intent newIntent2 = new Intent("com.android.camera.action.CROP");
 
-                    intentI.putExtra("aspectX", 1);
-                    intentI.putExtra("aspectY", 1);
+                    newIntent2.setDataAndType( uri,"image/*" );
+                    newIntent2.putExtra("crop","true");
+                    newIntent2.putExtra("scale",true);
+                    newIntent2.putExtra("outputX", 500);
+                    newIntent2.putExtra("outputY", 500);
+                    newIntent2.putExtra("aspectX", 1);
+                    newIntent2.putExtra("aspectY", 1);
+                    newIntent2.putExtra("return-data", false);
 
-                    intentI.putExtra("outputX", 400);
-                    intentI.putExtra("outputY", 400);
-                    intentI.putExtra("return-data", false);
                     createImageFile();
-                    outputFileUri = Uri.fromFile(imageFile);
-                    intentI.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
-                    Toast.makeText(MainActivity.this, "Crop", Toast.LENGTH_SHORT).show();
-                    startActivityForResult(intentI, CROP_PHOTO);
+                    fUri = Uri.fromFile( imgFile);
+                    newIntent2.putExtra(MediaStore.EXTRA_OUTPUT,fUri);
+                    Toast.makeText(MainActivity.this,"Crop",Toast.LENGTH_SHORT).show();
+                    startActivityForResult(newIntent2, CANCROP);
                     break;
             }
         }
     }
 
     private void requestStoragePermission() {
-        int hasCameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
-        Log.e("TAG","Begin" + hasCameraPermission);
-        if (hasCameraPermission == PackageManager.PERMISSION_GRANTED){
-
-            Log.e("TAG", "Permission granted");
-        }else {
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Log.e("TAG", "Ask for permission");
-                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION);
-            }
+        int permissioned= ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE);
+        Log.e("TAG","Begin"+permissioned);
+        if (permissioned==PackageManager.PERMISSION_GRANTED){
+            //
+        }else if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},PERSTORE);
         }
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == STORAGE_PERMISSION){
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-
-                Log.e("TAG","Permission granted");
-            }else {
-
-            }
-        }
-
     }
 
     private String name;
+
     public void createImageFile() {
-        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
-        Date date = new Date(System.currentTimeMillis());
-        name = format.format(date);
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMddHHmmss");
+        Date dte=new Date(System.currentTimeMillis());
+        name=fmt.format(dte);
         //SD
-        //File outputImage = new File(Environment.getExternalStorageDirectory(),"test.jpg");
+        //File outputImage = new File(Environment.getExternalStorageDirectory(),"new.jpg");
         //DCIM
-        File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
-        imageFile = new File(path, name + ".jpg");
+        File pth = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        imgFile=new File(pth,name+".jpg");
     }
 
-    //display image
-    private void displayImage(Uri imageUri) {
-        try{
-            Glide.with(this)
-                    .load(imageUri)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .placeholder(R.mipmap.ic_launcher_round)
-                    .error(R.mipmap.ic_launcher_round)
-                    .transform(new CenterCrop(this))
-                    .into(imageView);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-    }
 }

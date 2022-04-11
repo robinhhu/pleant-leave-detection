@@ -4,9 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.json.JSONException;
@@ -35,32 +33,28 @@ public class ResultActivity extends AppCompatActivity {
     }
 
     @OnClick(R.id.returnButton)
-    public void upload(View view) {
-        Intent intent = new Intent(ResultActivity.this, MainActivity.class);
-        startActivity(intent);
+    public void upload( View view) {
+        Intent newIntent = new Intent(ResultActivity.this, MainActivity.class);
+        startActivity(newIntent);
     }
 
     public void getResult(String url) {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(url).build();
-        Call call = client.newCall(request);
-        call.enqueue(new Callback() {
+        OkHttpClient client =new OkHttpClient();
+        Request req= new Request.Builder().url(url).build();
+        Call call=client.newCall(req);
+        call.enqueue(new Callback(){
             @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
+            public void onFailure(Call call, IOException e){e.printStackTrace();}
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
+            public void onResponse(Call call, Response res) throws IOException {
+                if(res.isSuccessful()) {
                     try {
-                        JSONObject jsonObject = new JSONObject(response.body().string());
-                        String result = jsonObject.get("result").toString();
-                        textView.setText(result);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                        JSONObject jsobj = new JSONObject(res.body().string());
+                        String text = jsobj.get("result").toString();
+                        textView.setText(text);
+                    } catch (JSONException ex) {
+                        ex.printStackTrace();
                     }
-                    //处理UI需要切换到UI线程处理
                 }
             }
         });
