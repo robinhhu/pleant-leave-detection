@@ -89,14 +89,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void uploadImage(String url, String imageUrl) {
         OkHttpClient okHttpClient = new OkHttpClient();
-        if(fUri == null) {
-            //
-        }
+        if(fUri == null) {}
         else {
             try {
                 MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
                 if (imgFile != null){
-                    //Log.d("TAG", String.valueOf(imgFile));
                     builder.addFormDataPart("file",imgFile.getName(),
                             RequestBody.create(MediaType.parse
                             ("image*//*"), imgFile));
